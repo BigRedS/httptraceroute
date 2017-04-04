@@ -1,16 +1,16 @@
-#HTTPTraceroute
+# HTTPTraceroute
 
 Given a URL, prints the chain of redirects as it follows it:
 
-    $ httptraceroute news.bbc.co.uk                                                                                                                                                                                                      
+    $ httptraceroute news.bbc.co.uk
     total     this      socket                 server                         code meaning                 nexthop
     0.1146ms  0.1146ms  212.58.246.80:80       Apache                         301  Moved Permanently       http://www.bbc.co.uk/news/
     0.1768ms  0.0622ms  212.58.244.70:80       Apache                         301  Moved Permanently       /news
-    0.1772ms  0.0003ms                                                        400  Bad Request        
+    0.1772ms  0.0003ms                                                        400  Bad Request
 
 
 
-##Usage:
+## Usage:
 
         httptraceroute [options] url
     
