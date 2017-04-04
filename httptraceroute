@@ -4,27 +4,79 @@ use strict;
 use 5.010;
 use LWP::UserAgent;
 use HTTP::Status;
-use Getopt::Std;
+use Getopt::Long;
 use Data::Dumper;
 use Time::HiRes qw(gettimeofday);
 
 our $VERSION="0.01";
 
-my %opts;
-getopt(''. %opts);
+my $print_first_status = undef;
+my $print_last_status = undef;
+my $print_first_header = undef;
+my $print_first_url = undef;
+my $print_last_url = undef;
+my $print_last_header = undef;
+my $usage = undef;
+
+GetOptions(
+	"h|help" => \$usage,
+	"first-status" => \$print_first_status,
+	"last-status" => \$print_last_status,
+	"first-header=s" => \$print_first_header,
+	"first-url" => \$print_first_url,
+	"last-url" => \$print_last_url,
+	"last-headers=s" => \$print_last_header,
+) or die ("Error parsing options");
+
 
 my $URL=shift;
 if ($URL !~ /^http/){
 	$URL = "http://$URL";
 }
 
+if($usage or !$URL){
+	print <<EOF;
+Usage:
+
+    httptraceroute [options] url
+
+Options:
+
+These will cause httptraceroute to make one single request before exiting:
+
+  --first-status                Only the numeric HTTP status returned from <url>
+  --first-url                   The redirected-to URL returned from the request to <url>
+  --first-header <header-name>  The value of <header-name> returned by the first host.
+                                empty if unset.
+
+And these will display how the last hosts in the chain responded:
+
+  --last-status                Only the numeric HTTP status from the last hop
+  --last-url                   The last redirected-to URL (the eventual point a visitor
+                               would reach); this is returned by the *penultimate* host.
+  --last-header <header-name>  The value of <header-name> returned by the last host.
+                               empty if unset.
+
+EOF
+exit;
+}
+
+my $print_traceroute = undef;
+unless($print_first_status or $print_last_status or $print_first_header
+	or $print_first_url or $print_last_url or $print_last_header){
+	$print_traceroute = 1;
+}
+
+
 my $ua = LWP::UserAgent->new();
 $ua->agent("HTTPTraceroute/$VERSION ");
 $ua->max_redirect(0);
 
-print header();
+print header() if $print_traceroute > 0;
 my $t_start = gettimeofday;
 hop($URL);
+
+
 sub hop{
 	my $url = shift;
 	my $t_request = gettimeofday;
@@ -33,10 +85,18 @@ sub hop{
 	my $t_totalElapsed = $t_response - $t_start;
 	my $t_thisRequest = $t_response - $t_request;
 	my ($nexthop, $message) = found($response);
-	print statusLine($response,$url,$t_totalElapsed, $t_thisRequest, $message, $nexthop);
+
+	print $response->code."\n" and exit if $print_first_status;
+	print $nexthop."\n" and exit if $print_first_url;
+	print $response->header( $print_first_header )."\n" and exit if $print_first_header;
+
+	print statusLine($response,$url,$t_totalElapsed, $t_thisRequest, $message, $nexthop) if $print_traceroute > 0;
 	if ($nexthop =~ /.+/){
 		hop($nexthop);
 	}
+	print $response->code."\n" and exit if $print_last_status;
+	print $url."\n" and exit if $print_last_url;
+	print $response->header( $print_last_header )."\n" and exit if $print_last_header;
 }
 
 
