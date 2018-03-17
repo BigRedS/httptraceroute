@@ -17,6 +17,7 @@ my $print_first_url = undef;
 my $print_last_url = undef;
 my $print_last_header = undef;
 my $usage = undef;
+my $show_version = undef;
 
 GetOptions(
 	"h|help" => \$usage,
@@ -26,8 +27,10 @@ GetOptions(
 	"first-url" => \$print_first_url,
 	"last-url" => \$print_last_url,
 	"last-headers=s" => \$print_last_header,
+	"version" => \$show_version,
 ) or die ("Error parsing options");
 
+print "httptraceroute version $VERSION\n" and exit if $show_version;
 
 my $URL=shift;
 
